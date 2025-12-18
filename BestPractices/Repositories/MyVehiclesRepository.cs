@@ -7,47 +7,82 @@ using System.Linq;
 namespace Best_Practices.Repositories
 {
     /// <summary>
-    /// In-memory implementation of the vehicle repository using a singleton collection.
+    /// Implementación en memoria del repositorio de vehículos usando una colección singleton.
     /// </summary>
+    /// <remarks>
+    /// ESTADO: EN USO - IMPLEMENTACIÓN ACTIVA
+    ///
+    /// Esta implementación permite:
+    /// - Pruebas sin base de datos
+    /// - Desarrollo rápido
+    /// - Demostración de funcionalidad
+    ///
+    /// Limitaciones:
+    /// - Los datos se pierden al reiniciar la aplicación
+    /// - No apto para producción
+    /// - Sin persistencia entre sesiones
+    ///
+    /// Ventajas del patrón Repository:
+    /// - El controlador no sabe que usa memoria en lugar de BD
+    /// - Fácil cambio a DBVehicleRepository cuando esté listo
+    /// - Mismo contrato (IVehicleRepository) para ambas implementaciones
+    /// </remarks>
     public class MyVehiclesRepository : IVehicleRepository
     {
         private readonly VehicleCollection _memoryCollection;
 
         /// <summary>
-        /// Initializes a new instance of the MyVehiclesRepository class.
+        /// Inicializa una nueva instancia de la clase MyVehiclesRepository.
         /// </summary>
+        /// <remarks>
+        /// Obtiene la instancia singleton de VehicleCollection.
+        /// El singleton es thread-safe gracias al uso de Lazy&lt;T&gt;.
+        /// </remarks>
         public MyVehiclesRepository()
         {
             _memoryCollection = VehicleCollection.Instance;
         }
 
         /// <summary>
-        /// Adds a vehicle to the in-memory collection.
+        /// Agrega un vehículo a la colección en memoria.
         /// </summary>
-        /// <param name="vehicle">The vehicle to add.</param>
-        /// <exception cref="ArgumentNullException">Thrown when vehicle is null.</exception>
+        /// <param name="vehicle">El vehículo a agregar.</param>
+        /// <exception cref="ArgumentNullException">Se lanza cuando el vehículo es nulo.</exception>
+        /// <remarks>
+        /// El vehículo se agrega a la colección singleton compartida.
+        /// Los cambios son inmediatamente visibles para todos los usuarios de la colección.
+        /// </remarks>
         public void AddVehicle(Vehicle vehicle)
         {
             if (vehicle == null)
-                throw new ArgumentNullException(nameof(vehicle), "Vehicle cannot be null.");
+                throw new ArgumentNullException(nameof(vehicle), "El vehículo no puede ser nulo.");
 
             _memoryCollection.Vehicles.Add(vehicle);
         }
 
         /// <summary>
-        /// Finds a vehicle by its unique identifier.
+        /// Busca un vehículo por su identificador único.
         /// </summary>
-        /// <param name="id">The unique identifier of the vehicle.</param>
-        /// <returns>The vehicle if found; otherwise, null.</returns>
+        /// <param name="id">El identificador único del vehículo.</param>
+        /// <returns>El vehículo si se encuentra; de lo contrario, null.</returns>
+        /// <remarks>
+        /// Usa LINQ para buscar en la colección en memoria.
+        /// El rendimiento es O(n) donde n es el número de vehículos.
+        /// Para producción con BD, el rendimiento sería O(1) con índice en ID.
+        /// </remarks>
         public Vehicle Find(Guid id)
         {
             return _memoryCollection.Vehicles.FirstOrDefault(v => v.Id.Equals(id));
         }
 
         /// <summary>
-        /// Retrieves all vehicles from the in-memory collection.
+        /// Obtiene todos los vehículos de la colección en memoria.
         /// </summary>
-        /// <returns>A collection of all vehicles.</returns>
+        /// <returns>Una colección de todos los vehículos.</returns>
+        /// <remarks>
+        /// Retorna la colección completa sin filtros ni paginación.
+        /// Para producción con muchos registros, considerar implementar paginación.
+        /// </remarks>
         public ICollection<Vehicle> GetVehicles()
         {
             return _memoryCollection.Vehicles;
