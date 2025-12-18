@@ -1,13 +1,17 @@
-﻿using Best_Practices.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Best_Practices.Models;
 
 namespace Best_Practices.Infraestructure.Factories
 {
+    /// <summary>
+    /// Abstract factory base class for creating vehicle instances.
+    /// Implements the Factory Method pattern.
+    /// </summary>
     public abstract class Creator
     {
-       public abstract Vehicle Create();
+        /// <summary>
+        /// Creates a new vehicle instance.
+        /// </summary>
+        /// <returns>A configured vehicle instance.</returns>
+        public abstract Vehicle Create();
     }
 }

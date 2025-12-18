@@ -1,0 +1,181 @@
+@startuml BestPractices-ClassDiagram
+
+' Interfaces
+interface IVehicle {
+    +StartEngine() : void
+    +StopEngine() : void
+    +AddGas() : void
+    +NeedsGas() : bool
+    +IsEngineOn() : bool
+}
+
+interface IVehicleRepository {
+    +GetVehicles() : ICollection<Vehicle>
+    +AddVehicle(vehicle: Vehicle) : void
+    +Find(id: Guid) : Vehicle
+}
+
+' Abstract Classes
+abstract class Vehicle {
+    +Id : Guid
+    +Tires : int
+    +Color : string
+    +Brand : string
+    +Model : string
+    +Gas : int
+    +FuelLimit : int
+    -_isEngineOn : bool
+    +StartEngine() : void
+    +StopEngine() : void
+    +AddGas() : void
+    +NeedsGas() : bool
+    +IsEngineOn() : bool
+}
+
+abstract class Creator {
+    +{abstract} Create() : Vehicle
+}
+
+' Concrete Vehicle Classes
+class Car {
+    +Tires : int = 4
+    +FuelLimit : int = 10
+}
+
+class Motocycle {
+    +Tires : int = 2
+    +FuelLimit : int = 5
+}
+
+' Factory Pattern - Concrete Creators
+class FordMustangCreator {
+    +Create() : Vehicle
+}
+
+class FordExplorerCreator {
+    +Create() : Vehicle
+}
+
+' Builder Pattern
+class CarBuilder {
+    -brand : string = "Ford"
+    -model : string = "Mustang"
+    -color : string = "Red"
+    +SetBrand(brand: string) : CarBuilder
+    +SetModel(model: string) : CarBuilder
+    +SetColor(color: string) : CarBuilder
+    +Build() : Car
+}
+
+' Singleton Pattern
+class VehicleCollection <<Singleton>> {
+    -{static} _instance : VehicleCollection
+    +{static} Instance : VehicleCollection
+    +Vehicles : ICollection<Vehicle>
+    -VehicleCollection()
+}
+
+' Repository Implementations
+class MyVehiclesRepository {
+    +GetVehicles() : ICollection<Vehicle>
+    +AddVehicle(vehicle: Vehicle) : void
+    +Find(id: Guid) : Vehicle
+}
+
+class DBVehicleRepository {
+    +GetVehicles() : ICollection<Vehicle>
+    +AddVehicle(vehicle: Vehicle) : void
+    +Find(id: Guid) : Vehicle
+}
+
+' Controller
+class HomeController {
+    -_vehicleRepository : IVehicleRepository
+    +HomeController(vehicleRepository: IVehicleRepository)
+    +Index() : IActionResult
+    +AddMustang() : IActionResult
+    +AddExplorer() : IActionResult
+    +StartEngine(id: Guid) : IActionResult
+    +StopEngine(id: Guid) : IActionResult
+    +AddGas(id: Guid) : IActionResult
+    +Error() : IActionResult
+}
+
+' ViewModels
+class HomeViewModel {
+    +Vehicles : ICollection<Vehicle>
+}
+
+class ErrorViewModel {
+    +RequestId : string
+    +ShowRequestId : bool
+}
+
+' Dependency Injection
+class ServicesConfiguration <<static>> {
+    +{static} ConfigureRepositories(services: IServiceCollection) : void
+}
+
+' Relationships
+
+' Inheritance and Implementation
+Vehicle ..|> IVehicle : implements
+Car --|> Vehicle : extends
+Motocycle --|> Vehicle : extends
+
+' Repository Pattern
+MyVehiclesRepository ..|> IVehicleRepository : implements
+DBVehicleRepository ..|> IVehicleRepository : implements
+
+' Factory Pattern
+FordMustangCreator --|> Creator : extends
+FordExplorerCreator --|> Creator : extends
+Creator ..> Vehicle : creates
+FordMustangCreator ..> CarBuilder : uses
+FordExplorerCreator ..> CarBuilder : uses
+CarBuilder ..> Car : builds
+
+' Singleton Usage
+MyVehiclesRepository ..> VehicleCollection : uses
+VehicleCollection o-- Vehicle : contains
+
+' Controller Dependencies
+HomeController --> IVehicleRepository : depends on
+HomeController ..> FordMustangCreator : instantiates
+HomeController ..> FordExplorerCreator : instantiates
+HomeController ..> HomeViewModel : uses
+HomeController ..> ErrorViewModel : uses
+
+' ViewModels
+HomeViewModel o-- Vehicle : contains
+
+' DI Configuration
+ServicesConfiguration ..> IVehicleRepository : registers
+ServicesConfiguration ..> MyVehiclesRepository : registers
+
+' Notes
+note right of VehicleCollection
+  Thread-unsafe singleton
+  implementation for
+  educational purposes
+end note
+
+note right of DBVehicleRepository
+  Placeholder implementation
+  All methods throw
+  NotImplementedException
+end note
+
+note bottom of Creator
+  Factory Method Pattern:
+  Subclasses decide which
+  Vehicle class to instantiate
+end note
+
+note bottom of CarBuilder
+  Builder Pattern:
+  Allows fluent construction
+  of Car objects with defaults
+end note
+
+@enduml

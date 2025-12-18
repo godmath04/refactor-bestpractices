@@ -1,14 +1,18 @@
-﻿using Best_Practices.ModelBuilders;
+using Best_Practices.ModelBuilders;
 using Best_Practices.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Best_Practices.Infraestructure.Factories
 {
+    /// <summary>
+    /// Factory for creating Ford Explorer vehicle instances.
+    /// Creates a black Ford Explorer using the CarBuilder with custom configuration.
+    /// </summary>
     public class FordExplorerCreator : Creator
     {
+        /// <summary>
+        /// Creates a new Ford Explorer with black color.
+        /// </summary>
+        /// <returns>A configured Ford Explorer instance.</returns>
         public override Vehicle Create()
         {
             var builder = new CarBuilder();

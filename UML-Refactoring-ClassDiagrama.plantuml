@@ -1,0 +1,302 @@
+@startuml BestPractices-Refactored-ClassDiagram
+
+' Color scheme for clarity
+skinparam class {
+    BackgroundColor<<Exception>> LightCoral
+    BackgroundColor<<Singleton>> LightBlue
+    BackgroundColor<<Builder>> LightGreen
+    BackgroundColor<<Factory>> LightYellow
+}
+
+' ========== EXCEPTIONS HIERARCHY ==========
+abstract class Exception <<.NET Framework>> {
+}
+
+class VehicleException <<Exception>> {
+    +VehicleException()
+    +VehicleException(message: string)
+    +VehicleException(message: string, innerException: Exception)
+}
+
+class EngineFaultException <<Exception>> {
+    +EngineFaultException()
+    +EngineFaultException(message: string)
+    +EngineFaultException(message: string, innerException: Exception)
+}
+
+class FuelException <<Exception>> {
+    +FuelException()
+    +FuelException(message: string)
+    +FuelException(message: string, innerException: Exception)
+}
+
+class InvalidVehicleStateException <<Exception>> {
+    +InvalidVehicleStateException()
+    +InvalidVehicleStateException(message: string)
+    +InvalidVehicleStateException(message: string, innerException: Exception)
+}
+
+' Exception hierarchy
+Exception <|-- VehicleException
+VehicleException <|-- EngineFaultException
+VehicleException <|-- FuelException
+VehicleException <|-- InvalidVehicleStateException
+
+' ========== VEHICLE DOMAIN MODEL ==========
+interface IVehicle {
+    +StartEngine() : void
+    +StopEngine() : void
+    +AddGas() : void
+    +NeedsGas() : bool
+    +IsEngineOn() : bool
+}
+
+abstract class Vehicle {
+    ' Constants
+    -GasIncrementPerPump : double = 0.1 <<const>>
+    -MinimumGasToStart : double = 0.01 <<const>>
+
+    ' Fields
+    -_isEngineOn : bool
+
+    ' Properties (read-only)
+    +Id : Guid <<get>>
+    +{abstract} Tires : int <<get>>
+    +Color : string <<get>>
+    +Brand : string <<get>>
+    +Model : string <<get>>
+    +Gas : double <<get, private set>>
+    +FuelLimit : double <<get>>
+
+    ' Constructor
+    #Vehicle(color: string, brand: string, model: string, fuelLimit: double = 10)
+
+    ' Methods
+    +AddGas() : void
+    +StartEngine() : void
+    +StopEngine() : void
+    +NeedsGas() : bool
+    +IsEngineOn() : bool
+}
+
+class Car {
+    +Tires : int <<get>> = 4
+    +Car(color: string, brand: string, model: string)
+}
+
+class Motorcycle {
+    +Tires : int <<get>> = 2
+    +Motorcycle(color: string, brand: string, model: string)
+}
+
+' Vehicle relationships
+IVehicle <|.. Vehicle : implements
+Vehicle <|-- Car : extends
+Vehicle <|-- Motorcycle : extends
+
+' Vehicle uses custom exceptions
+Vehicle .> EngineFaultException : throws
+Vehicle .> FuelException : throws
+
+' ========== REPOSITORY PATTERN ==========
+interface IVehicleRepository {
+    +GetVehicles() : ICollection<Vehicle>
+    +AddVehicle(vehicle: Vehicle) : void
+    +Find(id: Guid) : Vehicle
+}
+
+class MyVehiclesRepository {
+    -_memoryCollection : VehicleCollection
+    +MyVehiclesRepository()
+    +GetVehicles() : ICollection<Vehicle>
+    +AddVehicle(vehicle: Vehicle) : void
+    +Find(id: Guid) : Vehicle
+}
+
+class DBVehicleRepository {
+    +GetVehicles() : ICollection<Vehicle>
+    +AddVehicle(vehicle: Vehicle) : void
+    +Find(id: Guid) : Vehicle
+}
+
+IVehicleRepository <|.. MyVehiclesRepository : implements
+IVehicleRepository <|.. DBVehicleRepository : implements
+
+' ========== FACTORY METHOD PATTERN ==========
+abstract class Creator <<Factory>> {
+    +{abstract} Create() : Vehicle
+}
+
+class FordMustangCreator <<Factory>> {
+    +Create() : Vehicle
+}
+
+class FordExplorerCreator <<Factory>> {
+    +Create() : Vehicle
+}
+
+Creator <|-- FordMustangCreator : extends
+Creator <|-- FordExplorerCreator : extends
+Creator ..> Vehicle : creates
+
+' ========== BUILDER PATTERN ==========
+class CarBuilder <<Builder>> {
+    -_brand : string = "Ford"
+    -_model : string = "Mustang"
+    -_color : string = "Red"
+
+    +SetBrand(brand: string) : CarBuilder
+    +SetModel(model: string) : CarBuilder
+    +SetColor(color: string) : CarBuilder
+    +Build() : Car
+}
+
+CarBuilder ..> Car : builds
+FordMustangCreator ..> CarBuilder : uses
+FordExplorerCreator ..> CarBuilder : uses
+
+' ========== SINGLETON PATTERN ==========
+class VehicleCollection <<Singleton>> {
+    -{static} _lazyInstance : Lazy<VehicleCollection> <<readonly>>
+    +{static} Instance : VehicleCollection <<get>>
+    +Vehicles : ICollection<Vehicle> <<get>>
+    -VehicleCollection()
+}
+
+VehicleCollection o-- Vehicle : contains
+MyVehiclesRepository ..> VehicleCollection : uses
+
+' ========== MVC LAYER ==========
+class HomeController {
+    -_logger : ILogger<HomeController> <<readonly>>
+    -_vehicleRepository : IVehicleRepository <<readonly>>
+
+    +HomeController(vehicleRepository: IVehicleRepository, logger: ILogger<HomeController>)
+    +Index() : IActionResult
+    +AddMustang() : IActionResult
+    +AddExplorer() : IActionResult
+    +StartEngine(id: string) : IActionResult
+    +StopEngine(id: string) : IActionResult
+    +AddGas(id: string) : IActionResult
+    +Privacy() : IActionResult
+    +Error() : IActionResult
+}
+
+class HomeViewModel {
+    +Vehicles : ICollection<Vehicle>
+}
+
+class ErrorViewModel {
+    +RequestId : string
+    +ShowRequestId : bool
+}
+
+HomeController --> IVehicleRepository : depends on
+HomeController ..> FordMustangCreator : instantiates
+HomeController ..> FordExplorerCreator : instantiates
+HomeController ..> HomeViewModel : uses
+HomeController ..> ErrorViewModel : uses
+HomeViewModel o-- Vehicle : contains
+
+' Controller catches exceptions
+HomeController .> EngineFaultException : catches
+HomeController .> FuelException : catches
+HomeController .> VehicleException : catches
+
+' ========== DEPENDENCY INJECTION ==========
+class ServicesConfiguration <<static>> {
+    +{static} AddApplicationServices(services: IServiceCollection) : IServiceCollection
+}
+
+class Startup {
+    +Configuration : IConfiguration <<get>>
+    +Startup(configuration: IConfiguration)
+    +ConfigureServices(services: IServiceCollection) : void
+    +Configure(app: IApplicationBuilder, env: IWebHostEnvironment) : void
+}
+
+ServicesConfiguration ..> IVehicleRepository : registers
+ServicesConfiguration ..> MyVehiclesRepository : registers
+Startup ..> ServicesConfiguration : uses
+
+' ========== NOTES ==========
+note right of VehicleCollection
+  **IMPROVEMENTS:**
+  - Thread-safe using Lazy<T>
+  - Private constructor
+  - Read-only Vehicles property
+end note
+
+note bottom of Vehicle
+  **IMPROVEMENTS:**
+  - Named constants (no magic numbers)
+  - Immutable properties (Id, Brand, Model, Color)
+  - Guard clauses in constructor
+  - Custom exceptions
+  - Fixed LSP violation (abstract Tires)
+  - Private setter for Gas
+end note
+
+note right of CarBuilder
+  **IMPROVEMENTS:**
+  - Private fields (was public)
+  - Proper encapsulation
+  - Full XML documentation
+end note
+
+note left of IVehicleRepository
+  **IMPROVEMENTS:**
+  - Changed from Find(string id)
+  - Now uses Find(Guid id)
+  - Type-safe
+end note
+
+note bottom of HomeController
+  **IMPROVEMENTS:**
+  - Catches specific exception types
+  - Uses TempData for errors
+  - Proper logging
+  - Null checks and validation
+  - Guard clauses
+end note
+
+note top of ServicesConfiguration
+  **IMPROVEMENTS:**
+  - Extension method pattern
+  - Static class
+  - Modern ASP.NET Core style
+end note
+
+note bottom of DBVehicleRepository
+  Placeholder for future
+  database implementation
+end note
+
+' ========== LEGEND ==========
+legend right
+  **Design Patterns Implemented:**
+  |<back:LightYellow>  </back>| Factory Method Pattern |
+  |<back:LightGreen>  </back>| Builder Pattern |
+  |<back:LightBlue>  </back>| Singleton Pattern |
+  |<back:LightCoral>  </back>| Custom Exception Pattern |
+  | | Repository Pattern |
+  | | Dependency Injection |
+
+  **SOLID Principles Applied:**
+  ✓ Single Responsibility Principle
+  ✓ Open/Closed Principle
+  ✓ Liskov Substitution Principle
+  ✓ Interface Segregation Principle
+  ✓ Dependency Inversion Principle
+
+  **Best Practices:**
+  ✓ Immutability
+  ✓ Guard Clauses
+  ✓ Named Constants
+  ✓ Encapsulation
+  ✓ Thread Safety
+  ✓ Type Safety (Guid)
+  ✓ XML Documentation
+end legend
+
+@enduml

@@ -1,29 +1,34 @@
-﻿using Best_Practices.Models;
+using Best_Practices.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Best_Practices.Infraestructure.Singletons
 {
+    /// <summary>
+    /// Thread-safe singleton collection for storing vehicles in memory.
+    /// Implements the Singleton pattern using Lazy&lt;T&gt; for thread-safety.
+    /// </summary>
     public class VehicleCollection
     {
-        private static VehicleCollection _instance;
+        private static readonly Lazy<VehicleCollection> _lazyInstance =
+            new Lazy<VehicleCollection>(() => new VehicleCollection());
 
-        public static VehicleCollection Instance
-        {
-            get
-            {
-                if(_instance == null)
-                {
-                    _instance = new VehicleCollection();
-                }
-                return _instance;
-            }
-        }
-        public ICollection<Vehicle> Vehicles { get; set; }
+        /// <summary>
+        /// Gets the singleton instance of VehicleCollection.
+        /// Thread-safe implementation using Lazy&lt;T&gt;.
+        /// </summary>
+        public static VehicleCollection Instance => _lazyInstance.Value;
 
-        public VehicleCollection()
+        /// <summary>
+        /// Gets the collection of vehicles.
+        /// </summary>
+        public ICollection<Vehicle> Vehicles { get; }
+
+        /// <summary>
+        /// Private constructor to prevent external instantiation.
+        /// Initializes the vehicle collection.
+        /// </summary>
+        private VehicleCollection()
         {
             Vehicles = new List<Vehicle>();
         }
