@@ -52,6 +52,15 @@ namespace Best_Practices.Models
         /// Gets the maximum fuel capacity in gallons.
         /// </summary>
         public double FuelLimit { get; }
+
+        /// <summary>
+        /// Gets the year of the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Propiedad agregada según requisito del negocio.
+        /// Preparada para extensión con 20+ propiedades adicionales en próximo sprint.
+        /// </remarks>
+        public int Year { get; }
         #endregion
 
         #region Constructors
@@ -62,9 +71,10 @@ namespace Best_Practices.Models
         /// <param name="brand">The brand/manufacturer of the vehicle.</param>
         /// <param name="model">The model name of the vehicle.</param>
         /// <param name="fuelLimit">The maximum fuel capacity in gallons. Default is 10.</param>
+        /// <param name="year">The year of the vehicle. Default uses VehicleDefaults.</param>
         /// <exception cref="ArgumentNullException">Thrown when brand or model is null or whitespace.</exception>
         /// <exception cref="ArgumentException">Thrown when fuelLimit is not positive.</exception>
-        protected Vehicle(string color, string brand, string model, double fuelLimit = 10)
+        protected Vehicle(string color, string brand, string model, double fuelLimit = 10, int? year = null)
         {
             // Guard clauses for validation
             if (string.IsNullOrWhiteSpace(brand))
@@ -83,6 +93,17 @@ namespace Best_Practices.Models
             FuelLimit = fuelLimit;
             Gas = 0; // Start with empty tank
             _isEngineOn = false;
+
+            // Aplicar valores por defecto usando VehicleDefaults
+            // Si no se proporciona año, usar el valor por defecto
+            Year = year ?? VehicleDefaults.Instance.Year;
+
+            // TODO: Próximo Sprint - Agregar inicialización de 20+ propiedades adicionales
+            // Ejemplo:
+            // VIN = vin ?? VehicleDefaults.Instance.VIN;
+            // CountryOfManufacture = country ?? VehicleDefaults.Instance.CountryOfManufacture;
+            // TransmissionType = transmission ?? VehicleDefaults.Instance.TransmissionType;
+            // etc...
         }
         #endregion
 

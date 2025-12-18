@@ -18,9 +18,12 @@ namespace Best_Practices.Models
         /// <param name="color">The color of the motorcycle.</param>
         /// <param name="brand">The brand/manufacturer of the motorcycle.</param>
         /// <param name="model">The model name of the motorcycle.</param>
-        public Motorcycle(string color, string brand, string model)
-            : base(color, brand, model, fuelLimit: 5)
+        /// <param name="year">The year of the motorcycle. If null, uses current year from VehicleDefaults.</param>
+        public Motorcycle(string color, string brand, string model, int? year = null)
+            : base(color, brand, model, fuelLimit: 5, year: year)
         {
+            // Constructor delega al constructor base
+            // Parámetro year se pasa a Vehicle para aplicar defaults
         }
     }
 }
