@@ -39,7 +39,13 @@ namespace Best_Practices.Controllers
                 Vehicles = _vehicleRepository.GetVehicles()
             };
 
-            // Display error message from TempData if present
+            // Muestra mensaje de exito
+            if (TempData.ContainsKey("SuccessMessage"))
+            {
+                ViewBag.SuccessMessage = TempData["SuccessMessage"];
+            }
+
+            // Muestra mensaje de error
             if (TempData.ContainsKey("ErrorMessage"))
             {
                 ViewBag.ErrorMessage = TempData["ErrorMessage"];
@@ -49,7 +55,7 @@ namespace Best_Practices.Controllers
         }
 
         /// <summary>
-        /// Adds a Ford Mustang to the vehicle collection.
+        /// Añade un Ford Mustang a la collection con fuel inicial
         /// </summary>
         /// <returns>Redirect to home page.</returns>
         [HttpGet]
@@ -57,22 +63,38 @@ namespace Best_Practices.Controllers
         {
             try
             {
+                // Crea un vehiculo mediante el patrón factory
                 var factory = new FordMustangCreator();
                 var vehicle = factory.Create();
+
+                // Inicializar el vehiculo con gasolina
+                InitializeVehicleWithFuel(vehicle, fullTank: false);
+
+                // Add to repository
                 _vehicleRepository.AddVehicle(vehicle);
-                _logger.LogInformation("Added Ford Mustang with ID {VehicleId}", vehicle.Id);
+
+                _logger.LogInformation("Added Ford Mustang with ID {VehicleId}, Color: {Color}, Fuel: {Fuel}/{FuelLimit}",
+                    vehicle.Id, vehicle.Color, vehicle.Gas, vehicle.FuelLimit);
+
+                TempData["SuccessMessage"] = $"Successfully added {vehicle.Brand} {vehicle.Model} ({vehicle.Color}) with {vehicle.Gas:N1} gallons of fuel.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (VehicleException vex)
+            {
+                _logger.LogWarning(vex, "Vehicle-specific error adding Ford Mustang");
+                TempData["ErrorMessage"] = $"Error adding vehicle: {vex.Message}";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding Ford Mustang");
-                TempData["ErrorMessage"] = $"Error adding vehicle: {ex.Message}";
+                _logger.LogError(ex, "Unexpected error adding Ford Mustang");
+                TempData["ErrorMessage"] = "An unexpected error occurred while adding the vehicle.";
                 return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
-        /// Adds a Ford Explorer to the vehicle collection.
+        /// Añade un Ford Explorer a la collection con fuel inicial
         /// </summary>
         /// <returns>Redirect to home page.</returns>
         [HttpGet]
@@ -80,24 +102,40 @@ namespace Best_Practices.Controllers
         {
             try
             {
+                // Crear vehiculo mediante factory pattern
                 var factory = new FordExplorerCreator();
                 var vehicle = factory.Create();
+
+                //Inicializar vehiculo con fuel
+                InitializeVehicleWithFuel(vehicle, fullTank: false);
+
+                // Add to repository
                 _vehicleRepository.AddVehicle(vehicle);
-                _logger.LogInformation("Added Ford Explorer with ID {VehicleId}", vehicle.Id);
+
+                _logger.LogInformation("Added Ford Explorer with ID {VehicleId}, Color: {Color}, Fuel: {Fuel}/{FuelLimit}",
+                    vehicle.Id, vehicle.Color, vehicle.Gas, vehicle.FuelLimit);
+
+                TempData["SuccessMessage"] = $"Successfully added {vehicle.Brand} {vehicle.Model} ({vehicle.Color}) with {vehicle.Gas:N1} gallons of fuel.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (VehicleException vex)
+            {
+                _logger.LogWarning(vex, "Vehicle-specific error adding Ford Explorer");
+                TempData["ErrorMessage"] = $"Error adding vehicle: {vex.Message}";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding Ford Explorer");
-                TempData["ErrorMessage"] = $"Error adding vehicle: {ex.Message}";
+                _logger.LogError(ex, "Unexpected error adding Ford Explorer");
+                TempData["ErrorMessage"] = "An unexpected error occurred while adding the vehicle.";
                 return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
-        /// Starts the engine of a specific vehicle.
+        /// Inicia el motor para un vehiculo espeficio
         /// </summary>
-        /// <param name="id">The unique identifier of the vehicle.</param>
+        /// <param name="id">The identificado unico de vehiculo.</param>
         /// <returns>Redirect to home page.</returns>
         [HttpGet]
         public IActionResult StartEngine(string id)
@@ -114,29 +152,33 @@ namespace Best_Practices.Controllers
                 if (vehicle == null)
                 {
                     TempData["ErrorMessage"] = "Vehicle not found.";
+                    _logger.LogWarning("Attempted to start engine for non-existent vehicle {VehicleId}", vehicleId);
                     return RedirectToAction(nameof(Index));
                 }
 
                 vehicle.StartEngine();
-                _logger.LogInformation("Started engine for vehicle {VehicleId}", vehicleId);
+                _logger.LogInformation("Started engine for vehicle {VehicleId} ({Brand} {Model})",
+                    vehicleId, vehicle.Brand, vehicle.Model);
+
+                TempData["SuccessMessage"] = $"Engine started for {vehicle.Brand} {vehicle.Model}.";
                 return RedirectToAction(nameof(Index));
             }
             catch (EngineFaultException ex)
             {
                 _logger.LogWarning(ex, "Engine fault for vehicle {VehicleId}", id);
-                TempData["ErrorMessage"] = ex.Message;
+                TempData["ErrorMessage"] = $"Engine Error: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
             catch (FuelException ex)
             {
                 _logger.LogWarning(ex, "Fuel issue for vehicle {VehicleId}", id);
-                TempData["ErrorMessage"] = ex.Message;
+                TempData["ErrorMessage"] = $"Fuel Error: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error starting engine for vehicle {VehicleId}", id);
-                TempData["ErrorMessage"] = "An unexpected error occurred.";
+                TempData["ErrorMessage"] = "An unexpected error occurred while starting the engine.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -161,23 +203,29 @@ namespace Best_Practices.Controllers
                 if (vehicle == null)
                 {
                     TempData["ErrorMessage"] = "Vehicle not found.";
+                    _logger.LogWarning("Attempted to add fuel to non-existent vehicle {VehicleId}", vehicleId);
                     return RedirectToAction(nameof(Index));
                 }
 
+                var previousGas = vehicle.Gas;
                 vehicle.AddGas();
-                _logger.LogInformation("Added fuel to vehicle {VehicleId}", vehicleId);
+
+                _logger.LogInformation("Added fuel to vehicle {VehicleId} ({Brand} {Model}). Fuel: {PreviousGas} -> {CurrentGas}",
+                    vehicleId, vehicle.Brand, vehicle.Model, previousGas, vehicle.Gas);
+
+                TempData["SuccessMessage"] = $"Added fuel to {vehicle.Brand} {vehicle.Model}. Current fuel: {vehicle.Gas:N1}/{vehicle.FuelLimit:N1} gallons.";
                 return RedirectToAction(nameof(Index));
             }
             catch (FuelException ex)
             {
                 _logger.LogWarning(ex, "Fuel issue for vehicle {VehicleId}", id);
-                TempData["ErrorMessage"] = ex.Message;
+                TempData["ErrorMessage"] = $"Fuel Error: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error adding fuel to vehicle {VehicleId}", id);
-                TempData["ErrorMessage"] = "An unexpected error occurred.";
+                TempData["ErrorMessage"] = "An unexpected error occurred while adding fuel.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -202,23 +250,27 @@ namespace Best_Practices.Controllers
                 if (vehicle == null)
                 {
                     TempData["ErrorMessage"] = "Vehicle not found.";
+                    _logger.LogWarning("Attempted to stop engine for non-existent vehicle {VehicleId}", vehicleId);
                     return RedirectToAction(nameof(Index));
                 }
 
                 vehicle.StopEngine();
-                _logger.LogInformation("Stopped engine for vehicle {VehicleId}", vehicleId);
+                _logger.LogInformation("Stopped engine for vehicle {VehicleId} ({Brand} {Model})",
+                    vehicleId, vehicle.Brand, vehicle.Model);
+
+                TempData["SuccessMessage"] = $"Engine stopped for {vehicle.Brand} {vehicle.Model}.";
                 return RedirectToAction(nameof(Index));
             }
             catch (EngineFaultException ex)
             {
                 _logger.LogWarning(ex, "Engine fault for vehicle {VehicleId}", id);
-                TempData["ErrorMessage"] = ex.Message;
+                TempData["ErrorMessage"] = $"Engine Error: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error stopping engine for vehicle {VehicleId}", id);
-                TempData["ErrorMessage"] = "An unexpected error occurred.";
+                TempData["ErrorMessage"] = "An unexpected error occurred while stopping the engine.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -240,6 +292,43 @@ namespace Best_Practices.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        /// <summary>
+        /// Metodo para iniciar vehiculo con fuel. Se añade fuel inicial para el uso
+        /// </summary>
+        /// <param name="vehicle">The vehicle to initialize.</param>
+        /// <param name="fullTank">If true, fills tank completely; if false, adds partial fuel.</param>
+        private void InitializeVehicleWithFuel(Vehicle vehicle, bool fullTank = false)
+        {
+            if (vehicle == null)
+                throw new ArgumentNullException(nameof(vehicle));
+
+            try
+            {
+                if (fullTank)
+                {
+                    // Tanke lleno
+                    while (vehicle.Gas < vehicle.FuelLimit)
+                    {
+                        vehicle.AddGas();
+                    }
+                }
+                else
+                {
+                    // Añadir 50% para usabilidad inicial
+                    var targetGas = vehicle.FuelLimit * 0.5;
+                    while (vehicle.Gas < targetGas)
+                    {
+                        vehicle.AddGas();
+                    }
+                }
+            }
+            catch (FuelException)
+            {
+                //Tanke lleno o cerca de estar lleno
+                _logger.LogDebug("Vehicle {VehicleId} fuel tank reached capacity during initialization", vehicle.Id);
+            }
         }
     }
 }
